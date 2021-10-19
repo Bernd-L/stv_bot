@@ -1,12 +1,16 @@
 use futures::stream::StreamExt;
-use std::{env, error::Error};
+use std::{env, error::Error, fmt::Debug, time::Duration};
 use twilight_cache_inmemory::{InMemoryCache, ResourceType};
 use twilight_gateway::{
     cluster::{Cluster, ShardScheme},
     Event,
 };
 use twilight_http::Client as HttpClient;
-use twilight_model::gateway::Intents;
+use twilight_model::{
+    channel::{thread::AutoArchiveDuration, Channel, GuildChannel},
+    gateway::{payload::ThreadUpdate, Intents},
+    id::ChannelId,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -17,10 +21,11 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let scheme = ShardScheme::Auto;
 
     // Use intents to only receive guild message events.
-    let (cluster, mut events) = Cluster::builder(token.to_owned(), Intents::GUILD_MESSAGES)
-        .shard_scheme(scheme)
-        .build()
-        .await?;
+    let (cluster, mut events) =
+        Cluster::builder(token.to_owned(), Intents::GUILD_MESSAGES | Intents::GUILDS)
+            .shard_scheme(scheme)
+            .build()
+            .await?;
 
     // Start up the cluster.
     let cluster_spawn = cluster.clone();
@@ -57,17 +62,69 @@ async fn handle_event(
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     match event {
         Event::MessageCreate(msg) if msg.content == "!ping" => {
-            http.create_message(msg.channel_id)
+            // http.create_message(msg.channel_id)
+            let r = http
+                .create_message(ChannelId(900041355202547786))
                 .content("Pong!")?
+                .exec();
+
+            debug_log(&http, "Got the future").await?;
+            let r = r.await;
+
+            debug_log(&http, &r).await?;
+        }
+        Event::MessageCreate(msg) if msg.content == "!ua" => {
+            debug_log(&http, "Unarchiving").await?;
+
+            // Unarchive the thread
+            http.update_thread(ChannelId(900061500453060638))
+                .archived(false)
+                .locked(false)
+                .auto_archive_duration(AutoArchiveDuration::Day)
+                .exec()
+                .await?;
+
+            // // Unarchive the thread
+            // let r = http
+            //     .update_channel(ChannelId(900061500453060638))
+            //     // .archived(false)
+            //     // .locked(false)
+            //     .name("1234")?
+            //     .exec()
+            //     .await;
+
+            // debug_log(&http, &format!("{:#?}", &r)).await?;
+
+            http.create_message(ChannelId(900041355202547786))
+                .content("Unarchived")?
                 .exec()
                 .await?;
         }
         Event::ShardConnected(_) => {
             println!("Connected on shard {}", shard_id);
         }
-        // Other events here...
+        Event::ThreadUpdate(ThreadUpdate(Channel::Guild(GuildChannel::PublicThread(thread)))) => {
+            // // http.create_message(thread.id)
+            // http.create_message(ChannelId(900041355202547786))
+            //     // .content(&format!("Archived={}", thread.thread_metadata.archived))?
+            //     .content(&format!("```json\n{:#?}\n```", thread))?
+            //     .exec()
+            //     .await?;
+        }
         _ => {}
     }
+
+    Ok(())
+}
+
+async fn debug_log(
+    http: &HttpClient,
+    thing: impl Debug,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    http.create_message(ChannelId(900106000319799306))
+        .content(&format!("```json\n{:#?}\n```", thing))?
+        .exec()
+        .await?;
 
     Ok(())
 }
