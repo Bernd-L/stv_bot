@@ -1,0 +1,18 @@
+[package]
+name = "stv_bot"
+version = "0.0.0"
+edition = "2018"
+
+authors = ["Bernd-L <git@bernd.pw>"]
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/Bernd-L/stv_bot"
+homepage = "https://github.com/Bernd-L/stv_bot#readme"
+readme = "README.md"
+documentation = "https://docs.rs/stv_bot"
+description = "A Discord bot for StV"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# Twilight Discord connector
+twilight = "0.6"
