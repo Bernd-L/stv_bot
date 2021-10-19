@@ -16,3 +16,11 @@ description = "A Discord bot for StV"
 [dependencies]
 # Twilight Discord connector
 twilight = "0.6"
+twilight-cache-inmemory = "*"
+twilight-gateway = "*"
+twilight-http = "*"
+twilight-model = "*"
+
+# Async libs
+futures = "*"
+tokio = { version = "1", features = ["full"] }
